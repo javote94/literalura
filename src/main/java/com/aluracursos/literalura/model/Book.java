@@ -24,7 +24,7 @@ public class Book {
 
     private Integer numberOfDownloads;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)  //Nota(1)
+    @ManyToOne
     @JoinColumn(name = "author_id")
     private Author author;
 

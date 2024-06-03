@@ -1,10 +1,14 @@
 package com.aluracursos.literalura.ui;
 
+import com.aluracursos.literalura.dtos.AuthorInfoDTO;
 import com.aluracursos.literalura.dtos.BookDTO;
+import com.aluracursos.literalura.dtos.BookInfoDTO;
+import com.aluracursos.literalura.exceptions.BookAlreadyExistsException;
+import com.aluracursos.literalura.exceptions.BookNotFoundException;
+import com.aluracursos.literalura.service.AuthorService;
 import com.aluracursos.literalura.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
@@ -15,14 +19,20 @@ public class Menu {
     @Autowired
     private BookService bookService;
     @Autowired
+    private AuthorService authorService;
+    @Autowired
     private Scanner read;
 
     public void showMenu() {
 
-        int menuOption = 0;
+        int menuOption = -1;
         String bookTitle;
+        String language;
+        int year;
+        String authorName;
         BookDTO bookDTO;
-        List<BookDTO> booksDTOs;
+        List<BookInfoDTO> bookInfoDTOList;
+        List<AuthorInfoDTO> authorInfoDTOList;
 
         System.out.println(
                 """
@@ -43,12 +53,16 @@ public class Menu {
                         """
                                                         
                                 --------- MENÚ DE OPCIONES ---------
-                                1. Cargar un libro nuevo
+                                1. Cargar un libro desde la API de Gutendex a Literalura
                                 2. Buscar un libro por título
                                 3. Listar libros registrados
-                                4. Listar autores registrados
-                                5. Listar autores vivos en un determinado año
-                                6. Listar libros según idioma
+                                4. Listar libros según idioma
+                                5. Listar libros según autor
+                                6. Listar los 10 libros más descargados
+                                7. Listar autores registrados
+                                8. Listar autores vivos en un determinado año
+                                9. Solicitar a chatGPT la síntesis de un libro
+                               
                                 0. Salir de la aplicación
                                 ------------------------------------
                                 """
@@ -59,50 +73,69 @@ public class Menu {
                 switch (menuOption) {
                     case 1:
                         System.out.println("Por favor, ingrese el título del libro que desea cargar en Literalura:");
-                        bookTitle = read.nextLine().replace(" ", "+");
-                        bookDTO = bookService.loadBookIntoDatabase(bookTitle);
-                        if (bookDTO != null) {
-                            Message.showMessageOption1(bookDTO);
-                        } else {
-                            System.out.println("No se encontraron libros para el título dado");
+                        bookTitle = read.nextLine();
+                        try {
+                            bookDTO = bookService.loadBookIntoDatabase(bookTitle);
+                            Message.showSuccessfulSaveMessage(bookDTO);
+                        } catch (BookNotFoundException e) {
+                            Message.showBookNotFoundMessage(bookTitle);
+                        } catch (BookAlreadyExistsException e) {
+                            Message.showBookAlreadyExistsMessage(bookTitle);
                         }
                         break;
                     case 2:
                         System.out.println("Por favor, ingrese el título del libro que desea buscar:");
                         bookTitle = read.nextLine();
-                        booksDTOs = bookService.findBooksByTitlePart(bookTitle);
-                        if (!booksDTOs.isEmpty()) {
-                            System.out.println("**** Cantidad de coincidencias encontradas con el título dado: " + booksDTOs.size() + " ****");
-                            int counter = 0;
-                            for (BookDTO dto : booksDTOs) {
-                                counter++;
-                                Message.showMessageOption2(dto, counter);
-                            }
-                        } else {
-                            System.out.println("No se ha encontrado el libro solicitado");
-                        }
+                        bookInfoDTOList = bookService.findBooksByTitlePart(bookTitle);
+                        Message.showBooksByTitle(bookInfoDTOList);
                         break;
                     case 3:
-                        booksDTOs = bookService.listAllBooks();
-                        if (!booksDTOs.isEmpty()) {
-                            System.out.println("**** Cantidad de libros registrados en Literalura: " + booksDTOs.size() + " ****");
-                            int counter = 0;
-                            for (BookDTO dto : booksDTOs) {
-                                counter++;
-                                Message.showMessageOption2(dto, counter);
-                            }
-                        } else {
-                            System.out.println("No hay libros registrados en Literalura");
-                        }
+                        bookInfoDTOList = bookService.listAllBooks();
+                        Message.showAllBooks(bookInfoDTOList);
                         break;
                     case 4:
-                        System.out.println("Opción 4");
+                        System.out.println("""
+                                --------- MENÚ DE LENGUAJES ---------
+                                es - español
+                                en - inglés
+                                fr - francés
+                                pt - portugués
+                                ------------------------------------
+                                Por favor, seleccionar un idioma para buscar libros:
+                                """);
+                        language = read.nextLine();
+                        bookInfoDTOList = bookService.findBooksByLanguage(language);
+                        Message.showBooksByLanguage(bookInfoDTOList);
                         break;
                     case 5:
-                        System.out.println("Opción 5");
+                        System.out.println("Por favor, ingrese el nombre del autor para mostrar su bibliografía: ");
+                        authorName = read.nextLine();
+                        bookInfoDTOList = bookService.getAuthorBibliography(authorName);
+                        Message.showBooksByAnAuthor(bookInfoDTOList);
                         break;
                     case 6:
-                        System.out.println("Opción 6");
+                        bookInfoDTOList = bookService.listTenPopularBooks();
+                        Message.showTenPopularBooks(bookInfoDTOList);
+                        break;
+                    case 7:
+                        authorInfoDTOList = authorService.listAllAuthors();
+                        Message.showAllAuthors(authorInfoDTOList);
+                        break;
+                    case 8:
+                        System.out.println("Por favor, ingrese el año para buscar los autores vivos en la fecha dada: ");
+                        year = Integer.parseInt(read.nextLine());
+                        authorInfoDTOList = authorService.listLivingAuthors(year);
+                        Message.showLivingAuthors(authorInfoDTOList);
+                        break;
+                    case 9:
+                        System.out.println("Por favor, ingrese el título del libro que desea resumir: ");
+                        bookTitle = read.nextLine();
+                        try {
+                            String resume = bookService.resumeBookWithChatGPT(bookTitle);
+                            System.out.println(resume);
+                        } catch (Exception e) {
+                            System.out.println("Hubo un error al obtener el resumen del libro: " + e.getMessage());
+                        }
                         break;
                     case 0:
                         System.out.println("Saliendo de la aplicación...");
@@ -123,7 +156,7 @@ public class Menu {
 
     //Verificar condición del bucle del menú
     private boolean continueInMenu(int menuOption) {
-        if (menuOption >= 1 && menuOption <= 6) {
+        if (menuOption >= 1 && menuOption <= 9) {
             while (true) {  //Añadir bucle para reintentar hasta obtener una respuesta válida
                 try {
                     System.out.println(
@@ -148,7 +181,7 @@ public class Menu {
                 }
             }
         }
-        if (menuOption > 6 || menuOption < 0) {
+        if (menuOption > 9 || menuOption < 0) {
             return true;
         }
         return false;
