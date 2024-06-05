@@ -135,7 +135,6 @@ public class BookService {
     private void persistBook(BookDTO bookDTO) {
         // Del bookDTO se captura el primer resultado del array "authors" y se instancia un author
         AuthorDTO authorDTO = bookDTO.getFirstAuthorDTO();
-        System.out.println(authorDTO);
 
         // Buscar si un autor con el mismo nombre ya existe en la base de datos
         Optional<Author> existingAuthor = authorRepository.findByName(authorDTO.name());
@@ -149,7 +148,6 @@ public class BookService {
 
         // Instanciar un Book con los datos de BookDTO y Author
         Book book = new Book(bookDTO, author);
-        System.out.println(book);
 
         // Persistir el Book utilizando el autor existente o el nuevo autor, según corresponda.
         bookRepository.save(book);

@@ -134,7 +134,7 @@ public class Menu {
                             String resume = bookService.resumeBookWithChatGPT(bookTitle);
                             System.out.println(resume);
                         } catch (Exception e) {
-                            System.out.println("Hubo un error al obtener el resumen del libro: " + e.getMessage());
+                            System.out.println("Hubo un error al obtener el resumen del libro");
                         }
                         break;
                     case 0:

@@ -1,7 +1,6 @@
 package com.aluracursos.literalura.api;
 
 import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -33,7 +32,6 @@ public class ApiClient {
         try {
             // Enviar la solicitud y obtener la respuesta
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("HTTP CODE: " + response.statusCode());
             return response.body();
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Error fetching data from API: " + e.getMessage(), e);
